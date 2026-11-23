@@ -1,0 +1,75 @@
+name: 01 - Hello World & Manual Dispatch
+
+# 'on' defines what triggers this workflow.
+# You can trigger it on git events (push, pull_request) or manually (workflow_dispatch).
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # workflow_dispatch allows you to run this workflow manually from GitHub's Actions tab
+  # and optionally pass input parameters!
+  workflow_dispatch:
+    inputs:
+      user_name:
+        description: "Name to greet"
+        required: false
+        default: "Explorer"
+      environment_choice:
+        type: choice
+        description: "Choose deployment target environment"
+        options:
+          - development
+          - staging
+          - production
+        default: development
+
+# Optional: set environment variables accessible to all jobs in this workflow
+env:
+  PROJECT_NAME: "gatabasum-starter"
+
+jobs:
+  # Job identifier: 'greet-and-inspect'
+  greet-and-inspect:
+    name: Hello World & Environment Inspection
+    # Specifies the type of virtual runner machine to use
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Run a simple single-line bash command
+      - name: Print welcome message
+        run: echo "Hello, world! Welcome to GitHub Actions."
+
+      # Step 2: Use GitHub context variables
+      # Learn more about contexts: https://docs.github.com/en/actions/learn-github-actions/contexts
+      - name: Display GitHub Context Information
+        run: |
+          echo "Triggered by event : ${{ github.event_name }}"
+          echo "Triggered by user  : ${{ github.actor }}"
+          echo "Repository name    : ${{ github.repository }}"
+          echo "Git reference      : ${{ github.ref }}"
+          echo "Commit SHA         : ${{ github.sha }}"
+          echo "Runner OS          : ${{ runner.os }}"
+
+      # Step 3: Handle manual workflow inputs (if triggered via workflow_dispatch)
+      - name: Greet user with input
+        run: |
+          echo "Greeting: Hello, ${{ inputs.user_name || 'Guest' }}!"
+          echo "Target Environment: ${{ inputs.environment_choice || 'default' }}"
+
+      # Step 4: Work with environment variables
+      - name: Read environment variables
+        env:
+          STEP_LEVEL_VAR: "Created inside step 4"
+        run: |
+          echo "Workflow-level variable: $PROJECT_NAME"
+          echo "Step-level variable: $STEP_LEVEL_VAR"
+
+      # Step 5: Multi-line shell commands
+      - name: System diagnostic snapshot
+        run: |
+          echo "=== Runner System Info ==="
+          uname -a
+          echo "Current working directory: $(pwd)"
+          echo "Disk space summary:"
+          df -h | head -n 5

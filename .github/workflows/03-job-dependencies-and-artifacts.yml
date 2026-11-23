@@ -1,0 +1,75 @@
+name: 03 - Job Dependencies & Artifacts
+
+# This workflow demonstrates:
+# 1. Multi-job orchestration with dependencies ('needs')
+# 2. Passing files/artifacts between jobs ('upload-artifact' and 'download-artifact')
+# 3. Conditional execution based on job status
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Build & Package artifact
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Simulate build / create release artifact
+        run: |
+          mkdir -p dist
+          echo "Build Timestamp: $(date -u)" > dist/build_info.txt
+          echo "Git Commit: ${{ github.sha }}" >> dist/build_info.txt
+          echo "Packaging application..."
+          tar -czf dist/app-package.tar.gz src/
+
+      # Upload the artifacts so subsequent jobs or users can download them
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-build
+          path: dist/
+          retention-days: 7
+
+  # Job 2: Run automated test suite
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run unit tests
+        run: |
+          python -m unittest discover -s tests -v
+
+  # Job 3: Simulate deployment
+  # 'needs: [build, test]' ensures this job runs ONLY after both 'build' and 'test' succeed
+  deploy-simulation:
+    name: Simulated Deployment
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - name: Download build artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: application-build
+          path: downloaded-dist
+
+      - name: Verify and deploy
+        run: |
+          echo "=== Downloaded Artifacts ==="
+          ls -la downloaded-dist/
+          echo "=== Build Info Contents ==="
+          cat downloaded-dist/build_info.txt
+          echo "Simulated deployment completed successfully!"
